@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Playwright 브라우저 및 시스템 의존성 설치
+RUN playwright install --with-deps chromium
+
 COPY . .
 
 # FastAPI 실행

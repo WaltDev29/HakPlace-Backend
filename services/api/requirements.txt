@@ -4,3 +4,5 @@ sqlalchemy
 pymysql
 pydantic-settings
 cryptography
+apscheduler
+playwright
