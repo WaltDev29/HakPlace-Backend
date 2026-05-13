@@ -1,0 +1,26 @@
+name: hakplace
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: hakplace-db
+    restart: always
+    env_file:
+      - ../env/.env.db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ../../services/db:/var/lib/mysql
+
+  api:
+    build:
+      context: ../../services/api
+      dockerfile: Dockerfile
+    container_name: hakplace-api
+    restart: always
+    env_file:
+      - ../env/.env.api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
