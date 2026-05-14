@@ -14,5 +14,15 @@ class StatisticResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class FoodRatingResponse(BaseModel):
+    food_id: int = Field(..., example=1)
+    name: str = Field(..., example="치킨너겟")
+    avg_rating: float = Field(..., example=4.5)
+    meal_count: int = Field(..., description="이 음식이 포함된 총 식단 수", example=10)
+
+class FoodRatingList(BaseModel):
+    foods: List[FoodRatingResponse]
+    updated_at: Optional[datetime] = Field(None, description="마지막 업데이트 시간")
+
 class StatisticList(BaseModel):
     stats: List[StatisticResponse]

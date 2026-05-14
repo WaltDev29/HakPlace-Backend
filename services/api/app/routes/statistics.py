@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import Statistic
-from app.schemas.statistic import StatisticResponse, StatisticList
+from app.schemas.statistic import StatisticResponse, StatisticList, FoodRatingList
 from typing import Optional
 
 router = APIRouter()
@@ -32,6 +32,11 @@ def get_statistics(
         ))
         
     return StatisticList(stats=res)
+ 
+@router.get("/foods", response_model=FoodRatingList, summary="음식별 평균 평점 조회", description="각 음식별로 해당 음식이 포함된 식단들의 평균 평점을 조회합니다. 데이터는 1시간마다 업데이트됩니다.")
+def get_food_ratings():
+    from app.tasks.food_stats import get_cached_food_ratings
+    return get_cached_food_ratings()
 
 @router.get("/{stat_id}", response_model=StatisticResponse, summary="통계 상세 조회", description="특정 통계 데이터의 상세 내용 및 AI 코멘트를 조회합니다.")
 def get_statistic_detail(stat_id: int, db: Session = Depends(get_db)):

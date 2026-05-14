@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks.meal_sync import crawl_and_sync
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from datetime import datetime
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -37,8 +38,10 @@ def create_app() -> FastAPI:
     # 라우터 등록
     app.include_router(api_router)
 
-    # 스케줄러 설정 (평일 08:00 실행)
+    # 스케줄러 설정
     scheduler = BackgroundScheduler()
+    
+    # 1. 식단 동기화 (평일 08:00 실행)
     scheduler.add_job(
         crawl_and_sync, 
         'cron', 
@@ -47,8 +50,19 @@ def create_app() -> FastAPI:
         minute=0,
         id='meal_sync_task'
     )
+    
+    # 2. 음식별 평점 캐싱 (1시간마다 실행)
+    from app.tasks.food_stats import update_food_ratings
+    scheduler.add_job(
+        update_food_ratings,
+        'interval',
+        hours=1,
+        id='food_stats_update_task',
+        next_run_time=datetime.now() # 시작 시 즉시 실행
+    )
+    
     scheduler.start()
-    logging.info("배치 스케줄러 시작: 평일 08:00 크롤링 예약됨")
+    logging.info("배치 스케줄러 시작: 식단 동기화(평일 08:00) 및 음식 통계(1시간 주기) 예약됨")
 
     @app.on_event("shutdown")
     def shutdown_event():
