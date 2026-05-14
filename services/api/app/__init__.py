@@ -2,13 +2,36 @@ from fastapi import FastAPI
 from app.routes import api_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks.meal_sync import crawl_and_sync
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="HakPlace API",
-        description="HakPlace Backend Service",
-        version="1.0.0"
+        title="🍱 HakPlace API",
+        description="""
+학식 앱 **HakPlace**를 위한 백엔드 API 서비스입니다.
+
+### 제공 기능
+* **Auth**: 회원가입, JWT 로그인 및 보안 강화
+* **Meals**: 일간/주간 식단 정보 조회
+* **Reviews**: 식단별 리뷰 작성, 이미지 업로드, 실시간 평점 반영
+* **Statistics**: AI 기반 식단 분석 및 통계 제공
+* **Users**: 내 정보 관리 및 계정 탈퇴
+        """,
+        version="1.1.0",
+        contact={
+            "name": "HakPlace Team",
+            "url": "https://github.com/WaltDev29/HakPlace-Backend",
+        },
+    )
+
+    # CORS 설정
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # 라우터 등록

@@ -9,7 +9,7 @@ logger = logging.getLogger("meal_sync")
 def clean_food_name(name):
     """음식 이름 정제: 공백 제거 및 특수 기호 기준 분리"""
     name = name.replace(' ', '').strip()
-    for sep in ['&', '/', '+', ',']:
+    for sep in [',']:
         name = name.replace(sep, '|')
     return [n for n in name.split('|') if n]
 
