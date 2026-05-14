@@ -37,13 +37,6 @@ def signup(user_in: UserSignup, db: Session = Depends(get_db)):
     def clean_phone(phone: str) -> str:
         return phone.replace("-", "") if phone else ""
 
-    # 디버깅용 로그 (실제 서비스에서는 민감 정보이므로 주의)
-    print(f"DEBUG: Comparing student_id={user_in.student_id}")
-    print(f"DEBUG: Name match: DB='{student.name}', Input='{user_in.name}' -> {student.name == user_in.name}")
-    print(f"DEBUG: Birth match: DB='{student.birth_date}', Input='{user_in.birth_date}' -> {student.birth_date == user_in.birth_date}")
-    print(f"DEBUG: Gender match: DB='{student.gender}', Input='{user_in.gender}' -> {student.gender == user_in.gender}")
-    print(f"DEBUG: Phone match: DB='{clean_phone(student.phone_number)}', Input='{clean_phone(user_in.phone_number)}' -> {clean_phone(student.phone_number) == clean_phone(user_in.phone_number)}")
-
     is_info_match = (
         student.name == user_in.name and
         student.birth_date == user_in.birth_date and
