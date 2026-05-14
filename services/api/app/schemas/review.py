@@ -10,7 +10,7 @@ class ReviewCreate(BaseModel):
 
 class ReviewResponse(BaseModel):
     review_id: int = Field(..., example=1)
-    student_name: str = Field(..., example="홍길동")
+    student_name: str = Field(..., description="마스킹 처리된 학생 이름", example="홍**")
     meal_id: int = Field(..., example=101)
     rating: float = Field(..., example=5.0)
     review_comment: Optional[str] = Field(None, example="정말 맛있어요!")

@@ -9,6 +9,16 @@ from app.utils.image_utils import save_base64_image
 from typing import List, Optional
 
 router = APIRouter()
+ 
+def mask_name(name: str) -> str:
+    """
+    이름의 첫 글자만 남기고 나머지를 '*'로 마스킹합니다. (예: 홍길동 -> 홍**)
+    """
+    if not name:
+        return ""
+    if len(name) <= 1:
+        return name
+    return name[0] + "*" * (len(name) - 1)
 
 def update_meal_rating(meal_id: int, db: Session):
     """
@@ -25,7 +35,7 @@ def update_meal_rating(meal_id: int, db: Session):
         meal.review_count = stats.review_count or 0
         db.add(meal)
 
-@router.post("/", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED, summary="리뷰 작성", description="특정 식단에 대한 리뷰를 작성합니다. 이미지(Base64) 첨부가 가능하며, 작성 시 해당 식단의 평균 평점이 자동 갱신됩니다.")
+@router.post("/", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED, summary="리뷰 작성", description="특정 식단에 대한 리뷰를 작성합니다. 이미지(Base64) 첨부가 가능하며, 작성 시 해당 식단의 평균 평점이 자동 갱신됩니다. 개인정보 보호를 위해 작성자 이름은 마스킹 처리되어 반환됩니다.")
 def create_review(
     review_in: ReviewCreate,
     db: Session = Depends(get_db),
@@ -72,7 +82,7 @@ def create_review(
     # 반환 데이터 구성 (학생 이름 포함)
     return ReviewResponse(
         review_id=new_review.review_id,
-        student_name=current_user.name,
+        student_name=mask_name(current_user.name),
         meal_id=new_review.meal_id,
         rating=new_review.rating,
         review_comment=new_review.review_comment,
@@ -80,7 +90,7 @@ def create_review(
         created_at=new_review.created_at
     )
 
-@router.get("/", response_model=ReviewList, summary="리뷰 목록 조회", description="식단 ID 또는 학생 ID별로 리뷰를 필터링하여 조회합니다. 최신순, 평점순 정렬을 지원합니다.")
+@router.get("/", response_model=ReviewList, summary="리뷰 목록 조회", description="식단 ID 또는 학생 ID별로 리뷰를 필터링하여 조회합니다. 최신순, 평점순 정렬을 지원하며, 모든 작성자 이름은 마스킹 처리(예: 홍**)되어 반환됩니다.")
 def list_reviews(
     meal_id: Optional[int] = None,
     student_id: Optional[str] = None,
@@ -107,7 +117,7 @@ def list_reviews(
     for r in reviews:
         res.append(ReviewResponse(
             review_id=r.review_id,
-            student_name=r.student.name,
+            student_name=mask_name(r.student.name),
             meal_id=r.meal_id,
             rating=r.rating,
             review_comment=r.review_comment,
