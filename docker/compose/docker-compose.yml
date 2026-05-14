@@ -5,6 +5,8 @@ services:
     image: mysql:8.0
     container_name: hakplace-db
     restart: always
+    environment:
+      - TZ=Asia/Seoul
     env_file:
       - ../env/.env.db
     ports:
@@ -18,6 +20,8 @@ services:
       dockerfile: Dockerfile
     container_name: hakplace-api
     restart: always
+    environment:
+      - TZ=Asia/Seoul
     env_file:
       - ../env/.env.api
     ports:
