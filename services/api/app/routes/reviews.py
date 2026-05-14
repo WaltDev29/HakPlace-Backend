@@ -90,19 +90,26 @@ def create_review(
         created_at=new_review.created_at
     )
 
-@router.get("/", response_model=ReviewList, summary="리뷰 목록 조회", description="식단 ID 또는 학생 ID별로 리뷰를 필터링하여 조회합니다. 최신순, 평점순 정렬을 지원하며, 모든 작성자 이름은 마스킹 처리(예: 홍**)되어 반환됩니다.")
+@router.get("/", response_model=ReviewList, summary="리뷰 목록 조회", description="식단 ID, 학생 ID, 또는 날짜 범위를 기준으로 리뷰를 필터링하여 조회합니다. 최신순, 평점순 정렬을 지원하며, 모든 작성자 이름은 마스킹 처리되어 반환됩니다.")
 def list_reviews(
     meal_id: Optional[int] = None,
     student_id: Optional[str] = None,
+    start_date: Optional[str] = None, # YYYY-MM-DD
+    end_date: Optional[str] = None,   # YYYY-MM-DD
     sort_by: str = "newest", # newest, highest, lowest
     db: Session = Depends(get_db)
 ):
-    query = db.query(Review).join(Student)
+    # 날짜 필터링을 위해 Meal 테이블과 조인
+    query = db.query(Review).join(Student).join(Meal)
     
     if meal_id:
         query = query.filter(Review.meal_id == meal_id)
     if student_id:
         query = query.filter(Review.student_id == student_id)
+    if start_date:
+        query = query.filter(Meal.served_date >= start_date)
+    if end_date:
+        query = query.filter(Meal.served_date <= end_date)
         
     if sort_by == "highest":
         query = query.order_by(Review.rating.desc(), Review.created_at.desc())

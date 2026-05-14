@@ -61,6 +61,27 @@ def create_app() -> FastAPI:
         next_run_time=datetime.now() # 시작 시 즉시 실행
     )
     
+    # 3. AI 리뷰 분석 (평일 09:00~20:00 1시간마다)
+    from app.tasks.stat_tasks import update_weekly_stats, run_saturday_stats
+    scheduler.add_job(
+        update_weekly_stats,
+        'cron',
+        day_of_week='mon-fri',
+        hour='9-20',
+        minute=0,
+        id='weekly_ai_analysis_task'
+    )
+
+    # 4. 주간 최종 및 월간 통합 분석 (토요일 08:00)
+    scheduler.add_job(
+        run_saturday_stats,
+        'cron',
+        day_of_week='sat',
+        hour=8,
+        minute=0,
+        id='saturday_ai_analysis_task'
+    )
+    
     scheduler.start()
     logging.info("배치 스케줄러 시작: 식단 동기화(평일 08:00) 및 음식 통계(1시간 주기) 예약됨")
 
