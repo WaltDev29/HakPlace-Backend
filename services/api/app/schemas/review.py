@@ -12,6 +12,8 @@ class ReviewResponse(BaseModel):
     review_id: int = Field(..., example=1)
     student_name: str = Field(..., description="마스킹 처리된 학생 이름", example="홍**")
     meal_id: int = Field(..., example=101)
+    meal_type: str = Field(..., description="학식 종류 (조식/중식/석식)", example="중식")
+    meal_date: str = Field(..., description="학식 날짜 (YYYY-MM-DD)", example="2024-05-15")
     rating: float = Field(..., example=5.0)
     review_comment: Optional[str] = Field(None, example="정말 맛있어요!")
     photo_url: Optional[str] = Field(None, example="/static/uploads/uuid.png")
