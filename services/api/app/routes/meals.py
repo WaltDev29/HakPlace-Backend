@@ -15,8 +15,8 @@ def format_meal(meal: Meal) -> MealSchema:
         meal_id=meal.meal_id,
         served_date=meal.served_date,
         meal_type=meal.meal_type,
-        avg_rating=float(meal.avg_rating),
-        review_count=meal.review_count,
+        avg_rating=float(meal.avg_rating or 0.0),
+        review_count=(meal.review_count or 0),
         foods=[food.name for food in meal.foods]
     )
 
