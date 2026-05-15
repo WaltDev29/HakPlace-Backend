@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.routes import api_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks.meal_sync import crawl_and_sync
@@ -35,8 +36,9 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 라우터 등록
+    # 라우터 및 정적 파일 설정
     app.include_router(api_router)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
     # 스케줄러 설정
     scheduler = BackgroundScheduler()

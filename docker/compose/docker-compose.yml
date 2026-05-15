@@ -9,8 +9,6 @@ services:
       - TZ=Asia/Seoul
     env_file:
       - ../env/.env.db
-    ports:
-      - "3306:3306"
     volumes:
       - ../../services/db:/var/lib/mysql
 
@@ -26,5 +24,7 @@ services:
       - ../env/.env.api
     ports:
       - "8000:8000"
+    volumes:
+      - ../../services/api/static:/app/static
     depends_on:
       - db
