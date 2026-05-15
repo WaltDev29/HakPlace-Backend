@@ -54,7 +54,7 @@ class AIAnalysisService:
         }
       ],
       "ai_analysis": "이번 주 전반적인 평가 및 특징 요약 (3-4문장)",
-      "trend_analysis": "이전 분석 결과 대비 변화 추이 분석 (prev_rating과 avg_rating 비교 포함)",
+      "trend_analysis": "이전 분석 결과 대비 변화 추이 분석",
       "best_meal": "이번 주 가장 인기 있었던 식단 정보",
       "improvement_points": "학생들의 불만사항이나 개선이 필요한 부분"
     }
@@ -70,10 +70,10 @@ class AIAnalysisService:
 [이전 분석 결과 및 당시 평점 데이터]
 {previous_analysis if previous_analysis else "이전 분석 데이터가 없습니다. (첫 분석)"}
 
-평점이 0인 경우 평점 데이터가 없음을 의미합니다.
+평점이 0인 경우 평점 데이터가 없음을 의미하며, 만족도가 낮음을 의미하는 것이 아닙니다.
 
 위 데이터를 바탕으로 이번 주의 만족도 변화와 특징을 분석해줘.
-특히 이전 분석 데이터가 있다면, 당시의 식단별 평점과 현재 평점을 비교하여 평가가 어떻게 변했는지(상승/하락)와 특정 메뉴에 대한 반응 변화를 'trend_analysis'에 구체적으로 작성해줘.
+특히 이전 분석 데이터가 있다면, 당시의 식단별 평점과 현재 평점을 비교하여 평가가 어떻게 변했는지(상승/하락)와 특정 메뉴에 대한 반응 변화를 'trend_analysis'에 간단하게 작성해줘.
 """
 
         try:
@@ -113,7 +113,7 @@ class AIAnalysisService:
   "analysis_date": "오늘 날짜",
   "period_value": "분석 대상 월 (YYYY-MM)",
   "ai_analysis": "이번 달 전체적인 급식 품질 및 만족도 총평",
-  "monthly_trend": "주차별 평점 변화 및 선호도 변화 요약",
+  "monthly_trend": "주차별 평점 변화 요약",
   "top_rated_weeks": ["만족도가 높았던 주차 정보"],
   "key_feedback": "한 달간 반복된 주요 피드백 내용"
 }
@@ -126,7 +126,7 @@ class AIAnalysisService:
 [주간 분석 데이터 목록]
 {json.dumps(context['weekly_summaries'], ensure_ascii=False, indent=2)}
 
-평점이 0인 경우 평점 데이터가 없음을 의미합니다.
+평점이 0인 경우 평점 데이터가 없음을 의미하며, 만족도가 낮음을 의미하는 것이 아닙니다.
 
 위 데이터를 종합하여 한 달간의 급식 만족도 흐름을 분석해줘.
 """
