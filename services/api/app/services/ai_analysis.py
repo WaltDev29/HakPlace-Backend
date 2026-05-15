@@ -70,6 +70,8 @@ class AIAnalysisService:
 [이전 분석 결과 및 당시 평점 데이터]
 {previous_analysis if previous_analysis else "이전 분석 데이터가 없습니다. (첫 분석)"}
 
+평점이 0인 경우 평점 데이터가 없음을 의미합니다.
+
 위 데이터를 바탕으로 이번 주의 만족도 변화와 특징을 분석해줘.
 특히 이전 분석 데이터가 있다면, 당시의 식단별 평점과 현재 평점을 비교하여 평가가 어떻게 변했는지(상승/하락)와 특정 메뉴에 대한 반응 변화를 'trend_analysis'에 구체적으로 작성해줘.
 """
@@ -123,6 +125,8 @@ class AIAnalysisService:
 
 [주간 분석 데이터 목록]
 {json.dumps(context['weekly_summaries'], ensure_ascii=False, indent=2)}
+
+평점이 0인 경우 평점 데이터가 없음을 의미합니다.
 
 위 데이터를 종합하여 한 달간의 급식 만족도 흐름을 분석해줘.
 """
