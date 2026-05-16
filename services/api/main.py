@@ -2,8 +2,8 @@ import uvicorn
 from app import create_app
 from app.db.session import engine, Base
 
-# 테이블 생성 (간단한 예제용, 실제 프로덕션에서는 Alembic 추천)
-Base.metadata.create_all(bind=engine)
+# 테이블 생성은 수동으로 진행 (create_tables.sql 사용)
+# Base.metadata.create_all(bind=engine)
 
 app = create_app()
 

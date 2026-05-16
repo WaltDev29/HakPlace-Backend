@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.routes import api_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks.meal_sync import crawl_and_sync
@@ -35,8 +36,60 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 라우터 등록
+    # 라우터 및 정적 파일 설정
     app.include_router(api_router)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    # 스케줄러 설정
+    scheduler = BackgroundScheduler()
+    
+    # 1. 식단 동기화 (평일 08:00 실행)
+    scheduler.add_job(
+        crawl_and_sync, 
+        'cron', 
+        day_of_week='mon-fri', 
+        hour=8, 
+        minute=0,
+        id='meal_sync_task'
+    )
+    
+    # 2. 음식별 평점 캐싱 (1시간마다 실행)
+    from app.tasks.food_stats import update_food_ratings
+    scheduler.add_job(
+        update_food_ratings,
+        'interval',
+        hours=1,
+        id='food_stats_update_task',
+        next_run_time=datetime.now() # 시작 시 즉시 실행
+    )
+    
+    # 3. AI 리뷰 분석 (평일 08:00)
+    from app.tasks.stat_tasks import update_weekly_stats, run_saturday_stats
+    scheduler.add_job(
+        update_weekly_stats,
+        'cron',
+        day_of_week='mon-fri',
+        hour=8,
+        minute=0,
+        id='weekly_ai_analysis_task'
+    )
+
+    # 4. 주간 최종 및 월간 통합 분석 (토요일 08:00)
+    scheduler.add_job(
+        run_saturday_stats,
+        'cron',
+        day_of_week='sat',
+        hour=8,
+        minute=0,
+        id='saturday_ai_analysis_task'
+    )
+    
+    scheduler.start()
+    logging.info("배치 스케줄러 시작: 식단 동기화(평일 08:00) 및 음식 통계(1시간 주기) 예약됨")
+
+    @app.on_event("shutdown")
+    def shutdown_event():
+        scheduler.shutdown()
 
     # 스케줄러 설정
     scheduler = BackgroundScheduler()
