@@ -97,6 +97,30 @@ def update_weekly_stats():
             }
             ai_result = ai_service.analyze_weekly_reviews(context, previous_analysis_json)
 
+            # 주간 베스트 식단 조회 및 포맷팅 (박제 방식)
+            best_meal_query = text("""
+                SELECT m.served_date, m.meal_type, m.avg_rating, GROUP_CONCAT(f.name SEPARATOR ', ') as foods
+                FROM meals m
+                LEFT JOIN meal_foods mf ON m.meal_id = mf.meal_id
+                LEFT JOIN foods f ON mf.food_id = f.food_id
+                WHERE m.served_date BETWEEN :start AND :end AND m.avg_rating > 0
+                GROUP BY m.meal_id
+                ORDER BY m.avg_rating DESC, m.review_count DESC
+                LIMIT 1
+            """)
+            best_row = conn.execute(best_meal_query, {"start": monday_dt.date(), "end": sunday_dt.date()}).fetchone()
+            best_meal_str = None
+            if best_row and best_row.avg_rating:
+                days = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+                day_name = days[best_row.served_date.weekday()]
+                date_str = best_row.served_date.strftime("%Y-%m-%d")
+                avg_rating = f"{float(best_row.avg_rating):.1f}"
+                foods_str = f"{best_row.foods}" if best_row.foods else ""
+                best_meal_str = f"{date_str} {day_name}\n평점 : {avg_rating}\n 식단 : {foods_str}"
+            
+            if isinstance(ai_result, dict):
+                ai_result["best_meal"] = best_meal_str
+
             # 5. DB 저장 (Upsert)
             upsert_query = text("""
                 INSERT INTO statistics (period_type, period_value, avg_rating, ai_comment, total_reviews)
@@ -121,18 +145,17 @@ def update_weekly_stats():
 
 def update_monthly_stats():
     """
-    월간 리뷰 분석 및 통계 업데이트 (매달 마지막 토요일 실행)
-    - 이번 달의 주간 통계들을 모아 종합적인 분석을 수행합니다.
+    월간 리뷰 분석 및 통계 업데이트 (매주 토요일 실행)
+    - 이번 달의 현재까지 누적된 주간 통계들을 종합하여 AI 분석을 수행합니다.
+    - 매주 동일한 월별 키(YYYY-MM)에 대해 덮어쓰기(Upsert)하며, 마지막 토요일에 최종본이 완성됩니다.
     """
     now = datetime.now()
-    
-    # 마지막 주 토요일인지 체크
-    if not is_last_saturday(now):
-        logger.info("오늘은 마지막 주 토요일이 아닙니다. 월간 분석을 건너뜁니다.")
-        return
-
     month_str = get_month_str(now)
-    logger.info(f"월간 통계 업데이트 시작: {month_str}")
+    
+    # 마지막 주 토요일 여부에 따라 로그 문맥을 다르게 설정하여 실행 상태를 명확히 기록합니다.
+    is_final = is_last_saturday(now)
+    status_label = "최종 저장" if is_final else "중간 갱신"
+    logger.info(f"월간 통계 업데이트 시작 ({status_label}): {month_str}")
 
     try:
         with engine.begin() as conn:
@@ -178,6 +201,39 @@ def update_monthly_stats():
             }
             ai_result = ai_service.analyze_monthly_reviews(context)
 
+            # 월간 베스트 식단 조회 및 포맷팅 (박제 방식)
+            import calendar
+            try:
+                year, month = map(int, month_str.split("-"))
+                num_days = calendar.monthrange(year, month)[1]
+                start_date = datetime(year, month, 1).date()
+                end_date = datetime(year, month, num_days).date()
+                
+                best_meal_query = text("""
+                    SELECT m.served_date, m.meal_type, m.avg_rating, GROUP_CONCAT(f.name SEPARATOR ', ') as foods
+                    FROM meals m
+                    LEFT JOIN meal_foods mf ON m.meal_id = mf.meal_id
+                    LEFT JOIN foods f ON mf.food_id = f.food_id
+                    WHERE m.served_date BETWEEN :start AND :end AND m.avg_rating > 0
+                    GROUP BY m.meal_id
+                    ORDER BY m.avg_rating DESC, m.review_count DESC
+                    LIMIT 1
+                """)
+                best_row = conn.execute(best_meal_query, {"start": start_date, "end": end_date}).fetchone()
+                best_meal_str = None
+                if best_row and best_row.avg_rating:
+                    days = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+                    day_name = days[best_row.served_date.weekday()]
+                    date_str = best_row.served_date.strftime("%Y-%m-%d")
+                    avg_rating = f"{float(best_row.avg_rating):.1f}"
+                    foods_str = f"{best_row.foods}" if best_row.foods else ""
+                    best_meal_str = f"{date_str} {day_name}\n평점 : {avg_rating}\n식단 : {foods_str}"
+                
+                if isinstance(ai_result, dict):
+                    ai_result["best_meal"] = best_meal_str
+            except Exception as e:
+                logger.error(f"월간 베스트 식단 도출 실패: {e}")
+
             # 3. DB 저장 (Upsert)
             upsert_query = text("""
                 INSERT INTO statistics (period_type, period_value, avg_rating, ai_comment, total_reviews)
@@ -195,10 +251,10 @@ def update_monthly_stats():
                 "total": total_reviews_sum
             })
 
-            logger.info(f"월간 통계 업데이트 완료: {month_str} (평점: {monthly_avg_rating})")
+            logger.info(f"월간 통계 업데이트 완료 ({status_label}): {month_str} (평점: {monthly_avg_rating})")
 
     except Exception as e:
-        logger.error(f"월간 통계 업데이트 중 오류 발생: {str(e)}")
+        logger.error(f"월간 통계 업데이트 중 오류 발생 ({status_label}): {str(e)}")
 
 def run_saturday_stats():
     """토요일 오전 8시 최종 주간 분석 및 월간 분석 통합 실행"""

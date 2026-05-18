@@ -16,16 +16,16 @@ class WeeklyAIComment(BaseModel):
     meals_summary: List[MealSummaryItem] = Field(..., description="해당 주차 식단 요약")
     ai_analysis: str = Field(..., description="AI 총평", example="이번 주는 전반적으로 평점이 상승세입니다.")
     trend_analysis: str = Field(..., description="평가 변화 추이 분석", example="지난 업데이트 대비 만족도가 상승했습니다.")
-    best_meal: str = Field(..., description="이번 주 베스트 식단", example="월요일 중식 (제육볶음)")
-    improvement_points: str = Field(..., description="개선 필요 사항", example="금요일 석식의 간이 세다는 의견이 있었습니다.")
+    key_feedback: str = Field(..., description="한 달간 반복된 주요 피드백 내용", example="제육볶음의 인기가 높았습니다.")
+    best_meal: Optional[str] = Field(None, description="이번 주 베스트 식단 (백엔드 계산 주입)", example="월요일 중식 (제육볶음)")
 
 class MonthlyAIComment(BaseModel):
     analysis_date: str = Field(..., description="분석 실행 날짜", example="2026-05-31")
     period_value: str = Field(..., description="해당 월", example="2026-05")
     ai_analysis: str = Field(..., description="월간 총평")
-    monthly_trend: str = Field(..., description="월간 변화 추이")
-    top_rated_weeks: List[str] = Field(..., description="우수 주차 목록")
+    trend_analysis: str = Field(..., description="주차별 평점 변화 요약", example="주차별 평점 변화 요약")
     key_feedback: str = Field(..., description="주요 피드백 요약")
+    best_meal: Optional[str] = Field(None, description="이번 달 베스트 식단 (백엔드 계산 주입)", example="05월 12일 중식 (제육볶음)")
 
 class StatisticResponse(BaseModel):
     stat_id: int = Field(..., example=1)

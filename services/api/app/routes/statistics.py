@@ -33,12 +33,13 @@ def get_statistics(
     
     res = []
     for s in stats:
+        comment_data = parse_ai_comment(s.ai_comment)
         res.append(StatisticResponse(
             stat_id=s.stat_id,
             period_type=s.period_type,
             period_value=s.period_value,
             avg_rating=float(s.avg_rating) if s.avg_rating else None,
-            ai_comment=parse_ai_comment(s.ai_comment),
+            ai_comment=comment_data,
             total_reviews=s.total_reviews,
             created_at=s.created_at
         ))
@@ -155,12 +156,14 @@ def get_statistic_detail(stat_id: int, db: Session = Depends(get_db)):
     if not stat:
         raise HTTPException(status_code=404, detail="통계 정보를 찾을 수 없습니다.")
         
+    comment_data = parse_ai_comment(stat.ai_comment)
+        
     return StatisticResponse(
         stat_id=stat.stat_id,
         period_type=stat.period_type,
         period_value=stat.period_value,
         avg_rating=float(stat.avg_rating) if stat.avg_rating else None,
-        ai_comment=parse_ai_comment(stat.ai_comment),
+        ai_comment=comment_data,
         total_reviews=stat.total_reviews,
         created_at=stat.created_at
     )
