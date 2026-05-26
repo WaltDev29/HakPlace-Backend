@@ -69,23 +69,31 @@ def crawl_and_sync():
             page = browser.new_page()
             page.goto("https://www.kopo.ac.kr/jungsu/content.do?menu=247", timeout=60000)
             
-            # 요일 및 날짜 가져오기
-            pwDays = page.query_selector_all(".menu tbody tr td:nth-child(1)")[:5]        
-            dates = []
-            for day in pwDays:
-                date_text = day.inner_text().split()[0]
-                dates.append(date_text)
-                stats["dates"].add(date_text)
-
-            # 메뉴 데이터 추출
-            pwMenus = page.query_selector_all(".menu td span")[:15]
+            # 행(row) 단위로 가져오기 (월~금 5일)
+            trs = page.query_selector_all(".menu tbody tr")[:5]
             meal_data = []
-            for idx, menu_span in enumerate(pwMenus):
-                meal_data.append({
-                    "date": dates[idx // 3],
-                    "type": ['조식', '중식', '석식'][idx % 3],
-                    "menu_raw": menu_span.inner_text().replace('\r', '').replace('\n', ',')
-                })
+            
+            for tr in trs:
+                tds = tr.query_selector_all("td")
+                if not tds:
+                    continue
+                
+                # 첫 번째 셀(td)은 날짜
+                date_text = tds[0].inner_text().split()[0]
+                stats["dates"].add(date_text)
+                
+                # 나머지 셀(td)은 각각 조식, 중식, 석식
+                for col_idx in range(1, 4):
+                    if col_idx < len(tds):
+                        menu_raw = tds[col_idx].inner_text().replace('\r', '').replace('\n', ',')
+                    else:
+                        menu_raw = ""
+                        
+                    meal_data.append({
+                        "date": date_text,
+                        "type": ['조식', '중식', '석식'][col_idx - 1],
+                        "menu_raw": menu_raw
+                    })
             browser.close()
     except Exception as e:
         stats["errors"].append(f"크롤링 에러: {str(e)}")
