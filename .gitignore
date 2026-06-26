@@ -86,3 +86,6 @@ dmypy.json
 
 # models
 *.pt
+
+# user images
+uploads/
