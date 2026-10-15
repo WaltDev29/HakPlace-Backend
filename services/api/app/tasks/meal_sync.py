@@ -1,4 +1,7 @@
-from playwright.sync_api import sync_playwright
+import urllib.request
+import re
+import ssl
+import html
 from sqlalchemy import text
 from app.db.session import engine
 import logging
@@ -48,6 +51,12 @@ def log_summary(stats):
     # 리스트에 담긴 모든 줄을 로그로 출력
     logger.info("\n".join(summary))
 
+def clean_tag(text):
+    text = re.sub(r'<script.*?</script>', '', text, flags=re.DOTALL)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = html.unescape(text)
+    return text.strip()
+
 def crawl_and_sync():
     logger.info("학식 데이터 동기화 태스크 시작")
     
@@ -63,38 +72,46 @@ def crawl_and_sync():
         "errors": []
     }
     
+    meal_data = []
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.goto("https://www.kopo.ac.kr/jungsu/content.do?menu=247", timeout=60000)
-            
-            # 행(row) 단위로 가져오기 (월~금 5일)
-            trs = page.query_selector_all(".menu tbody tr")[:5]
-            meal_data = []
-            
-            for tr in trs:
-                tds = tr.query_selector_all("td")
-                if not tds:
-                    continue
-                
-                # 첫 번째 셀(td)은 날짜
-                date_text = tds[0].inner_text().split()[0]
-                stats["dates"].add(date_text)
-                
-                # 나머지 셀(td)은 각각 조식, 중식, 석식
-                for col_idx in range(1, 4):
-                    if col_idx < len(tds):
-                        menu_raw = tds[col_idx].inner_text().replace('\r', '').replace('\n', ',')
-                    else:
-                        menu_raw = ""
-                        
-                    meal_data.append({
-                        "date": date_text,
-                        "type": ['조식', '중식', '석식'][col_idx - 1],
-                        "menu_raw": menu_raw
-                    })
-            browser.close()
+        url = "https://www.kopo.ac.kr/jungsu/content.do?menu=247"
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        raw_html = urllib.request.urlopen(req, context=ctx, timeout=30).read().decode('utf-8')
+
+        tbody_match = re.search(r'<table[^>]*class=\"[^\"]*menu[^\"]*\"[^>]*>.*?<tbody>(.*?)</tbody>', raw_html, re.DOTALL)
+        if not tbody_match:
+            raise ValueError("식단 테이블(menu tbody)을 찾을 수 없습니다.")
+
+        tbody_html = tbody_match.group(1)
+        trs = re.findall(r'<tr>(.*?)</tr>', tbody_html, re.DOTALL)[:5]
+
+        for tr in trs:
+            tds = re.findall(r'<td[^>]*>(.*?)</td>', tr, re.DOTALL)
+            if not tds:
+                continue
+
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', tds[0])
+            date_text = date_match.group(1) if date_match else clean_tag(tds[0]).split()[0]
+            stats["dates"].add(date_text)
+
+            for col_idx in range(1, 4):
+                if col_idx < len(tds):
+                    content = re.sub(r'<br\s*/?>', ',', tds[col_idx])
+                    content = re.sub(r'</span>\s*<span>', ',', content)
+                    menu_raw = clean_tag(content).replace('\r', '').replace('\n', ',')
+                    menu_raw = re.sub(r',+', ',', menu_raw).strip(',')
+                else:
+                    menu_raw = ""
+
+                meal_data.append({
+                    "date": date_text,
+                    "type": ['조식', '중식', '석식'][col_idx - 1],
+                    "menu_raw": menu_raw
+                })
     except Exception as e:
         stats["errors"].append(f"크롤링 에러: {str(e)}")
         log_summary(stats)

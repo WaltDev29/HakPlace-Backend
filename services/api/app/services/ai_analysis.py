@@ -4,16 +4,30 @@ from typing import List, Dict, Any, Optional
 from openai import OpenAI
 
 class AIAnalysisService:
-    def __init__(self):
+    def __init__(self, base_url: str = None):
         self.api_key = os.getenv("LLM_API_KEY")
         if not self.api_key:
             # Fallback for LLM_API_KEY if not found directly
             self.api_key = os.getenv("OPENAI_API_KEY")
             
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
-        self.model = "gpt-4o-mini"
+        self.base_url = base_url or os.getenv("LLM_BASE_URL")
+        self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
+        self.client = self._create_client(self.base_url)
 
-    def analyze_weekly_reviews(self, context: Dict[str, Any], previous_analysis: Optional[str] = None) -> Dict[str, Any]:
+    def _create_client(self, base_url: str = None) -> Optional[OpenAI]:
+        target_base_url = base_url or self.base_url or os.getenv("LLM_BASE_URL")
+        api_key = self.api_key or "APIKEY"
+        if target_base_url:
+            return OpenAI(
+                api_key=api_key,
+                base_url=target_base_url,
+                default_headers={"User-Agent": "Mozilla/5.0"}
+            )
+        elif self.api_key:
+            return OpenAI(api_key=self.api_key)
+        return None
+
+    def analyze_weekly_reviews(self, context: Dict[str, Any], previous_analysis: Optional[str] = None, base_url: str = None) -> Dict[str, Any]:
         """
         주간 리뷰 분석 수행
         context: {
@@ -32,8 +46,9 @@ class AIAnalysisService:
             ]
         }
         """
-        if not self.client:
-            return {"error": "LLM_API_KEY not configured"}
+        client = self._create_client(base_url) if base_url else (self.client or self._create_client())
+        if not client:
+            return {"error": "LLM_API_KEY or LLM_BASE_URL not configured"}
 
         system_prompt = """
 당신은 학교 급식 데이터를 분석하는 전문 AI 분석가입니다. 
@@ -76,7 +91,7 @@ class AIAnalysisService:
 """
 
         try:
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -88,7 +103,7 @@ class AIAnalysisService:
         except Exception as e:
             return {"error": f"AI 분석 중 오류 발생: {str(e)}"}
 
-    def analyze_monthly_reviews(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_monthly_reviews(self, context: Dict[str, Any], base_url: str = None) -> Dict[str, Any]:
         """
         월간 리뷰 분석 수행
         context: {
@@ -100,8 +115,9 @@ class AIAnalysisService:
             ]
         }
         """
-        if not self.client:
-            return {"error": "LLM_API_KEY not configured"}
+        client = self._create_client(base_url) if base_url else (self.client or self._create_client())
+        if not client:
+            return {"error": "LLM_API_KEY or LLM_BASE_URL not configured"}
 
         system_prompt = """
 당신은 학교 급식 데이터를 분석하는 전문 AI 분석가입니다. 
@@ -130,7 +146,7 @@ class AIAnalysisService:
 """
 
         try:
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
